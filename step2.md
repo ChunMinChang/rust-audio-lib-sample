@@ -5,7 +5,7 @@
 
 Rust has a keyword ```extern``` that provides *FFI* mechanism to call those functions written in another language. We could can a *C* function like the following:
 
-```rs
+```rust
 extern "C" {
     fn abs(input: i32) -> i32;
 }
@@ -20,7 +20,7 @@ fn main() {
 Functions within ```extern``` block are always called in a ```unsafe``` block. Since *Rust* has no way to guarantee the memory safety of the external functions written in other language, we need to use ```unsafe``` to label the dangerous parts and convince *Rust compiler* to trust we know what exactly we are doing. See [here][unsafe] for more details.
 
 Applying what we've learned above, we can rewrite *src/main.rs* into the following code:
-```rs
+```rust
 extern "C" {
     fn abs(input: i32) -> i32;
 }
@@ -179,7 +179,7 @@ The compiled executable file still has a dependency to [*libSystem*][libsys], ev
 
 Next, let's look back to see a *rust* example: *ffi.rs*:
 
-```rs
+```rust
 extern "C" {
     fn abs(x: i32) -> i32; // stdlib.h
     fn sin(x: f64) -> f64; // math.h
@@ -249,7 +249,7 @@ The sine of 30 degree according to C: 0.49999999999999994
 We can use ```$ otool -l ffi``` to get the load commands to compare. The result is longer than what we get from *C* code. (TODO: Maybe that is because we have a *libresolv* here ? why we have a *libresolv* here?)
 
 In fact, *Rust* will link to *libSystem* automatically no matter we use ```extern``` or not. Let's see an example *empty.rs*:
-```rs
+```rust
 fn main() {}
 ```
 
