@@ -65,6 +65,7 @@ pub mod utils {
         id: sys::AudioObjectID,
         address: &sys::AudioObjectPropertyAddress,
     ) -> Result<T, Error> {
+        assert!(id != sys::kAudioObjectUnknown, "Bad AudioObjectID!");
         // Use `mem::uninitialized()` to bypasses memory-initialization checks
         let mut data: T = unsafe { mem::uninitialized() };
         let mut size = mem::size_of_val(&data);
@@ -104,6 +105,7 @@ pub mod utils {
         use super::*; // To use the functions in utils
 
         #[test] // Built only within `cargo test`.
+        #[should_panic(expected = "Bad")]
         fn test_get_property_data_invalid_id() {
             // Invalid AudioObjectID with valid input adrress.
             assert_eq!(
