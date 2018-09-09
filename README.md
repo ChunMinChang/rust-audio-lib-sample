@@ -17,7 +17,7 @@ The goal for these posts is to create a *Rust* library based on *CoreAudio* fram
   - Use [bindgen][bindgen]
 
 ## Notice
-These posts may be changed anytime. These posts are actually my learning notes when I taught myself to program in Rust in the first two weeks. I am very new to *Rust* and I just read the parts I thoght it may be helpful. Once I have better understanding of *Rust*, the posts are very likely to be rewritten. Please feel free to let me know if you find any thing wrong.
+These posts may be changed anytime. These posts are actually my learning notes when I taught myself to program in Rust in the first two weeks. I am very new to *Rust* and I just read the parts I thoght it may be helpful. Once I have better understanding of *Rust*, the posts are very likely to be rewritten. Please feel free to let me know if you find anything wrong.
 
 [kornel]: https://kornel.ski/rust-sys-crate "Making a *-sys crate"
 [bindgen]: https://github.com/rust-lang-nursery/ "rust-bindgen"
