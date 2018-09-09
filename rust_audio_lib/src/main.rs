@@ -1,10 +1,10 @@
 extern crate rust_audio_lib; // Introduce the `rust_audio_lib` library crate.
-use rust_audio_lib::utils; // Refer to `utils` module.
-// use rust_audio_lib::utils::get_abs; // Refer to `get_abs` function in `utils` module.
+use rust_audio_lib::utils; // Refer to `utils` module
+// use rust_audio_lib::utils::double_abs; // Refer to `double_abs` function
 
 fn main() {
     let x: i32 = -50;
-    let abs: i32 = utils::get_abs(x);
-    // let abs: i32 = get_abs(x);
-    println!("abs of {} is {}", x, abs);
+    let abs: i32 = utils::double_abs(x);
+    // let abs: i32 = double_abs(x);
+    println!("Double of |{}| is {}", x, abs);
 }
