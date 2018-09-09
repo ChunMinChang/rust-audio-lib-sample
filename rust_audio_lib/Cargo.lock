@@ -1,0 +1,4 @@
+[[package]]
+name = "rust_audio_lib"
+version = "0.1.0"
+

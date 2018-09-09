@@ -1,0 +1,6 @@
+[package]
+name = "rust_audio_lib"
+version = "0.1.0"
+authors = ["chunmin <chun.m.chang@gmail.com>"]
+
+[dependencies]
