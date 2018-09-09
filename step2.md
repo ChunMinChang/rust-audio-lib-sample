@@ -1,6 +1,6 @@
 # Calling Native C APIs from Rust
 
-(See code example [here][step2].)
+(See the code [here][step2].)
 
 ## Foreign Function Interface
 > A foreign function interface (FFI) is a mechanism by which a program written in one programming language can call routines or make use of services written in another.

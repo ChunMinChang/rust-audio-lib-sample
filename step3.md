@@ -1,6 +1,6 @@
 # Moving APIs to Modules
 
-(See the sample code [here][step3].)
+(See the code [here][step3].)
 
 With the APIs grow, we need a better way to organize code instead of putting lots of functions in one file. *Rust* provides a *module* system that can structure code in a systematical manner. See [here][modules] for more detail.
 
