@@ -1,4 +1,4 @@
-extern crate rust_audio_lib; // Introduce the `rust_audio_lib` library crate.
+extern crate rust_audio_lib; // Introduce the `rust_audio_lib` library crate
 use rust_audio_lib::utils; // Refer to `utils` module
 // use rust_audio_lib::utils::double_abs; // Refer to `double_abs` function
 

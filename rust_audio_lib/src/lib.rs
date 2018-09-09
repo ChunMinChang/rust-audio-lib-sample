@@ -15,8 +15,8 @@ pub mod utils {
     }
 
     #[cfg(test)] // Indicates this is only included when running `cargo test`
-    mod tests { // (Internal) Submodule of utils
-        use super::*;
+    mod tests { // A private internal submodule in utils
+        use super::*; // To use the functions in utils
 
         #[test] // Indicates this is a test function
         fn test_get_abs() {

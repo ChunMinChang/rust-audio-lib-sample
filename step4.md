@@ -90,10 +90,10 @@ test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
 ...
 ```
 
-It's overkilled in the above example, but you get the idea about how we can write unit tests.
+It's overkilled in the above example, but you get the idea about how we can do.
 
 ## Threads in Testing
-The tests are running in parallel by default. The testing framwork will create new threads for each test. When one test thread has died, it's marked as failed. To verify it, we can run tests that operating some shared state:
+The tests are running in parallel by default. The testing framework will create new threads for each test. When one test thread has died, it's marked as failed. To verify it, we can run tests that operating some shared state:
 
 ```rust
 mod tests {
@@ -124,7 +124,7 @@ The ```thread1()``` and ```thread2()``` run on their own threads and they both w
 - ```thread1()``` failed since ```thread2()``` changes the data before ```thread1()``` varify it.
 - ```thread2()``` failed since ```thread1()``` changes the data before ```thread2()``` varify it.
 
-Situation 1: Both tests are passed.
+**Situation 1**: Both tests are passed.
 
 ```
 $ cargo test
@@ -140,7 +140,7 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
 ...
 ```
 
-Situation 2: ```thread1()``` failed since ```thread2()``` changes the data before ```thread1()``` varify it.
+**Situation 2**: ```thread1()``` failed since ```thread2()``` changes the data before ```thread1()``` varify it.
 
 ```
 $ cargo test
@@ -168,7 +168,7 @@ test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out
 error: test failed, to rerun pass '--lib'
 ```
 
-Situation 3: ```thread2()``` failed since ```thread1()``` changes the data before ```thread2()``` varify it.
+**Situation 3**: ```thread2()``` failed since ```thread1()``` changes the data before ```thread2()``` varify it.
 
 ```
 $ cargo test
@@ -218,7 +218,7 @@ There are other powerful commands you can use for facilitating the automated tes
 
 ## Unit Tests
 
-To know if the units of code or APIs work as what we expected, testing them individually is a pragmatic methodology. *Unit testing* separately examines every unit of library, no matter it's public or private.
+To know if the units of code or APIs work as expected, testing them individually is a pragmatic methodology. *Unit testing* examines every unit of library separately, no matter it's public or private.
 
 Besides the tests we used above, we can also put them into a test module. Both are *unit tests* techniques in *Cargo*. Look the following example:
 
@@ -241,8 +241,8 @@ pub mod utils {
     }
 
     #[cfg(test)] // Indicates this is only included when running `cargo test`
-    mod tests { // (Internal) Submodule of utils
-        use super::*;
+    mod tests { // A private internal submodule in utils
+        use super::*; // To use the functions in utils
 
         #[test] // Indicates this is a test function
         fn test_get_abs() {
@@ -254,11 +254,11 @@ pub mod utils {
 }
 ```
 
-We could extract all the tests into a ```mod tests```. The ```#[cfg(test)]``` indicates ```mod tests``` is only built when running ```cargo test```. The ```#[test]``` works in the same way as we mentioned above. It indicates ```fn test_abs_internal()``` is a test function and built within the *test runner binary*.
+We could put all the tests into a ```mod tests```. The ```#[cfg(test)]``` indicates ```mod tests``` is only built when running ```cargo test```. The ```#[test]``` works in the same way as we mentioned above. It indicates ```fn test_get_abs()``` is a test function and is only built within the *test runner binary*.
 
 *src/main.rs*:
 ```rust
-extern crate rust_audio_lib; // Introduce the `rust_audio_lib` library crate.
+extern crate rust_audio_lib; // Introduce the `rust_audio_lib` library crate
 use rust_audio_lib::utils; // Refer to `utils` module
 // use rust_audio_lib::utils::double_abs; // Refer to `double_abs` function
 
@@ -274,7 +274,7 @@ The usage of ```rust_audio_lib``` crate in *src/main.rs* doesn't change. All we 
 
 ## Integration Tests
 
-In addition to *unit tests*, *Cargo* also provides a built-in *integration tests* framework. The *unit testing* makes sure the units of code or APIs work as expected indivisually, while *integration testing* checks the units of code can work together. *Integration testing* groups the units of code into larger aggregates and verifies them work as we planned. It's entired external to the library, so we can use the public APIs exactly as what external code uses.
+In addition to *unit tests*, *Cargo* also provides a built-in *integration tests* framework. The *unit testing* makes sure the units of code or APIs work as expected indivisually, while *integration testing* checks the units of code can work together. *Integration testing* groups the units of code into larger aggregates and verifies them work as what we planned. It's **entired external** to the library, so we can use the public APIs **exactly as what external code uses**.
 
 To create an *integration test*, the first step is to create a *tests* directory. Next, we create a test file named *integration.rs* and put the following code into there:
 
@@ -296,7 +296,7 @@ fn test_double_abs() {
 }
 ```
 
-The usage of ```rust_audio_lib``` library crate is just like what we use in *src/main.rs*. We can only call public APIs. Another different thing is that we don't need to mark ```#[cfg(test)]``` attributes in the files under *tests* directory. All the files there are compiled only when we run ```cargo test```.
+The usage of ```rust_audio_lib``` library crate is just like what we use in *src/main.rs*. We can only call **public** APIs. Another different thing is that we **don't** need to mark ```#[cfg(test)]``` attributes in the files under *tests* directory. All the files there are compiled only when we run ```cargo test```.
 
 ## References
 - [Writing Automated Tests][testing]
