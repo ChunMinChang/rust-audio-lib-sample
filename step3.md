@@ -1,6 +1,6 @@
 # Moving APIs to Modules
 
-With the APIs grow, we need a better way to organize code instead of putting lots of functions in one file. *Rust* provides a *module* system that can structure code in an systematical manner. See [here][modules] for more detail.
+With the APIs grow, we need a better way to organize code instead of putting lots of functions in one file. *Rust* provides a *module* system that can structure code in a systematical manner. See [here][modules] for more detail.
 
 ## Creating a Library Crate
 The first step to create a library crate is to new a file named *lib.rs* under our *src* directory. Then, put the code into *src/lib.rs* as follows:
@@ -37,7 +37,7 @@ Now, there are two crates in our package:
 - binary crate: root file is *src/main.rs*
 - library crate: root file is *src/lib.rs*
 
-This is a common pattern. Most functions are located in a library crate, and they are called in a binary crate. By separating the code, functions in library crate can be used by other projects.
+This is a common pattern. Most functions are located in a library crate, and they are called in a binary crate. By separating the code into different crates, functions in library crate can be used by other projects.
 
 ## Namespace
 
@@ -59,7 +59,7 @@ fn main() {
 
 The line ```use rust_audio_lib::utils``` means ```utils``` is referred to the ```utils``` module directly. Similarly, you can directly refer to ```get_abs``` by changing the line into ```use rust_audio_lib::utils::get_abs```.
 
-Finally, let's see if it works:
+Finally, let's run our project to make sure it works:
 ```
 $ cargo build
    Compiling rust_audio_lib v0.1.0 (file:///<path>/<to>/<projects>/rust_audio_lib)
