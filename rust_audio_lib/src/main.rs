@@ -12,7 +12,7 @@ fn show_result(scope: &utils::Scope) {
             println!("default {} device id: {}", side, id);
         }
         Err(error) => {
-            println!("Failed to get {} device id. Error: {}", side, error);
+            println!("Failed to get {} device id. Error: {:?}", side, error);
         }
     }
 }

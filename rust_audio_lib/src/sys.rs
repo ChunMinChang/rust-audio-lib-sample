@@ -1,8 +1,6 @@
 #![allow(non_snake_case, non_upper_case_globals)]
 
-use std::mem; // For mem::uninitialized(), mem::size_of_val()
 use std::os::raw::c_void;
-use std::ptr; // For ptr::null()
 
 //  Type Aliases
 // ==============================================================================
@@ -32,14 +30,12 @@ pub struct AudioObjectPropertyAddress {
 }
 
 // https://developer.apple.com/documentation/coreaudio/1494531-anonymous/kaudiohardwarenoerror
-const kAudioHardwareNoError: OSStatus = 0;
+pub const kAudioHardwareNoError: OSStatus = 0;
 // https://developer.apple.com/documentation/coreaudio/1494531-anonymous/kaudiohardwarebadobjecterror
 // 0x'!obj' = 0x216F626A = 560947818
-#[cfg(test)]
 pub const kAudioHardwareBadObjectError: OSStatus = 560947818;
 
 // https://developer.apple.com/documentation/coreaudio/1494461-anonymous/kaudioobjectunknown
-#[cfg(test)]
 pub const kAudioObjectUnknown: AudioObjectID = 0;
 
 // https://developer.apple.com/documentation/coreaudio/1494464-anonymous/kaudioobjectpropertyscopeglobal
@@ -64,7 +60,7 @@ pub const kAudioHardwarePropertyDefaultOutputDevice: AudioObjectPropertySelector
 #[link(name = "CoreAudio", kind = "framework")] // Link dynamically to CoreAudio.
 extern "C" {
     // https://developer.apple.com/documentation/coreaudio/1422524-audioobjectgetpropertydata?language=objc
-    fn AudioObjectGetPropertyData(
+    pub fn AudioObjectGetPropertyData(
         inObjectID: AudioObjectID,
         inAddress: *const AudioObjectPropertyAddress,
         inQualifierDataSize: u32,
@@ -72,33 +68,4 @@ extern "C" {
         ioDataSize: *mut u32,
         outData: *mut c_void,
     ) -> OSStatus;
-}
-
-pub fn get_property_data<T>(
-    id: AudioObjectID,
-    address: &AudioObjectPropertyAddress,
-) -> Result<T, OSStatus> {
-    // Using `mem::uninitialized()` to bypasses memory-initialization checks.
-    let mut data: T = unsafe { mem::uninitialized() };
-    let mut size = mem::size_of_val(&data) as u32; // Cast usize to u32.
-    let status: OSStatus = unsafe {
-        AudioObjectGetPropertyData(
-            id,
-            // Cast AudioObjectPropertyAddress ref to
-            // raw AudioObjectPropertyAddress pointer
-            address as *const AudioObjectPropertyAddress,
-            0,
-            ptr::null(),
-            // Cast u32 ref to a raw u32 pointer.
-            &mut size as *mut u32,
-            // Cast T ref to a raw T pointer first,
-            // and then cast raw T pointer to void pointer.
-            &mut data as *mut T as *mut c_void,
-        )
-    };
-    if status == kAudioHardwareNoError {
-        Ok(data)
-    } else {
-        Err(status)
-    }
 }

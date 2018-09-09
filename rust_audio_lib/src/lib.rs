@@ -1,36 +1,101 @@
-mod sys; // Module contains types and functions of theexternal libraries.
+mod sys; // Module contains types and functions of theexternal libraries
 
 pub mod utils {
-    use super::sys::*; // Bring public types and functions in sys into scope.
+    use super::sys; // Bring `sys` module into scope
+    use std::mem;   // For mem::uninitialized(), mem::size_of_val()
+    use std::os::raw::c_void;
+    use std::ptr; // For ptr::null()
 
-    #[derive(PartialEq)] // Enable comparison.
+    #[derive(PartialEq)] // Enable comparison
     pub enum Scope {
         Input,
         Output,
     }
 
-    const DEFAULT_INPUT_DEVICE_PROPERTY_ADDRESS: AudioObjectPropertyAddress =
-        AudioObjectPropertyAddress {
-            mSelector: kAudioHardwarePropertyDefaultInputDevice,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMaster,
+    #[derive(Debug, PartialEq)] // Using Debug for std::fmt::Debug
+    pub enum Error {
+        NoDevice,
+        InvalidParameters,
+    }
+
+    impl From<sys::OSStatus> for Error {
+        fn from(status: sys::OSStatus) -> Error {
+            match status {
+                sys::kAudioHardwareBadObjectError => Error::InvalidParameters,
+                s => panic!("Unknown error status: {}", s),
+            }
+        }
+    }
+
+    pub type DeviceId = i32;
+
+    const DEFAULT_INPUT_DEVICE_PROPERTY_ADDRESS: sys::AudioObjectPropertyAddress =
+        sys::AudioObjectPropertyAddress {
+            mSelector: sys::kAudioHardwarePropertyDefaultInputDevice,
+            mScope: sys::kAudioObjectPropertyScopeGlobal,
+            mElement: sys::kAudioObjectPropertyElementMaster,
         };
 
-    const DEFAULT_OUTPUT_DEVICE_PROPERTY_ADDRESS: AudioObjectPropertyAddress =
-        AudioObjectPropertyAddress {
-            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMaster,
+    const DEFAULT_OUTPUT_DEVICE_PROPERTY_ADDRESS: sys::AudioObjectPropertyAddress =
+        sys::AudioObjectPropertyAddress {
+            mSelector: sys::kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: sys::kAudioObjectPropertyScopeGlobal,
+            mElement: sys::kAudioObjectPropertyElementMaster,
         };
 
-    pub fn get_default_device_id(scope: &Scope) -> Result<AudioObjectID, OSStatus> {
-        let id: AudioObjectID = kAudioObjectSystemObject;
-        let address: &AudioObjectPropertyAddress = if scope == &Scope::Input {
+    pub fn get_default_device_id(scope: &Scope) -> Result<DeviceId, Error> {
+        let address: &sys::AudioObjectPropertyAddress = if scope == &Scope::Input {
             &DEFAULT_INPUT_DEVICE_PROPERTY_ADDRESS
         } else {
             &DEFAULT_OUTPUT_DEVICE_PROPERTY_ADDRESS
         };
-        get_property_data::<AudioObjectID>(id, address)
+        let id = get_property_data::<sys::AudioObjectID>(sys::kAudioObjectSystemObject, address)?;
+        if id == sys::kAudioObjectUnknown {
+            Err(Error::NoDevice)
+        } else {
+            Ok(to_device_id(id))
+        }
+    }
+
+    fn to_device_id(id: sys::AudioObjectID) -> DeviceId {
+        id as DeviceId
+    }
+
+    fn get_property_data<T>(
+        id: sys::AudioObjectID,
+        address: &sys::AudioObjectPropertyAddress,
+    ) -> Result<T, Error> {
+        // Use `mem::uninitialized()` to bypasses memory-initialization checks
+        let mut data: T = unsafe { mem::uninitialized() };
+        let mut size = mem::size_of_val(&data);
+        let status = audio_object_get_property_data(id, address, &mut size, &mut data);
+        convert_to_result(status)?;
+        Ok(data)
+    }
+
+    fn audio_object_get_property_data<T>(
+        id: sys::AudioObjectID,
+        address: &sys::AudioObjectPropertyAddress,
+        size: *mut usize,
+        data: *mut T,
+    ) -> sys::OSStatus {
+        unsafe {
+            sys::AudioObjectGetPropertyData(
+                id,
+                address, // as `*const sys::AudioObjectPropertyAddress` automatically
+                0,
+                ptr::null(),
+                size as *mut u32,    // Cast raw usize pointer to raw u32 pointer
+                data as *mut c_void, // Cast raw T pointer to void pointer
+            )
+        }
+    }
+
+    fn convert_to_result(status: sys::OSStatus) -> Result<(), Error> {
+        match status {
+            sys::kAudioHardwareNoError => Ok(()),
+            e => Err(e.into()),
+        }
     }
 
     #[cfg(test)] // Indicates this is only included when running `cargo test`
