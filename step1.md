@@ -1,5 +1,7 @@
 # Creating a Project with Cargo
 
+(See the code [here][step1].)
+
 First, we creat a rust project with cargo
 ```
 $ cargo new rust_audio_lib
@@ -27,3 +29,5 @@ Everything is ok. Great, let's start our journey.
 - [Hello, Cargo!][cargo]
 
 [cargo]: https://doc.rust-lang.org/book/second-edition/ch01-03-hello-cargo.html "Hello, Cargo!"
+
+[step1]: https://github.com/ChunMinChang/rust-audio-lib-sample/tree/7f5899a11ab7fa2280b4bebf99ba95f761933f61/rust_audio_lib "Code for step 1"
