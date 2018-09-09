@@ -8,7 +8,7 @@ In this sample, we will create an audio library based on *OS X*'s *CoreAudio* fr
 Again, to practice *TDD(test-driven development)*, we should write tests before implementing functions. Since there is no API for now, we can simply create a mock API and use it to write tests. On ther other hand, we can also build a rough outline of the library by the mock API.
 
 Put the following code in *src/lib.rs*:
-```rs
+```rust
 pub mod utils {
     #[derive(PartialEq)] // Enable comparison.
     pub enum Scope {
@@ -53,7 +53,7 @@ After having a mock API, we write two simple unit tests:
 
 Next, we write a simple integration test in *tests/integration.rs*:
 
-```rs
+```rust
 extern crate rust_audio_lib; // Introduce the `rust_audio_lib` library crate.
 use rust_audio_lib::utils; // Refer to `utils` module
 
@@ -68,7 +68,7 @@ It verifies the API works for default input and output devices.
 
 Finally, we can use the API to show the results in *src/main.rs*:
 
-```rs
+```rust
 extern crate rust_audio_lib;
 use rust_audio_lib::utils; // Refer to `utils` module
 
@@ -96,7 +96,7 @@ Recall what we did in [Calling Native C APIs from Rust][callingC]: To call nativ
 
 Based on the assumption we set, we can rewrite *src/lib.rs* as follows:
 
-```rs
+```rust
 mod sys; // Module contains types and functions of theexternal libraries.
 
 pub mod utils {
@@ -178,7 +178,7 @@ There are two *unit tests* here. One is to check if the error throwns as expecte
 
 Next, let's implement what we defined above in ```sys``` module. Create a *sys.rs* under *src* and put the following code into *src/sys.rs*:
 
-```rs
+```rust
 use std::mem; // For mem::uninitialized(), mem::size_of
 use std::os::raw::c_void;
 use std::ptr; // For ptr::null()
@@ -324,7 +324,7 @@ The rest of code in the ```extern``` block is similar to what we did in [Calling
 We don't change the public interface in *src/lib.rs*, so we can leave *tests/integration.rs* and *src/main.rs* as they are.
 
 *tests/integration.rs*:
-```rs
+```rust
 extern crate rust_audio_lib; // Introduce the `rust_audio_lib` library crate.
 use rust_audio_lib::utils; // Refer to `utils` module
 
@@ -336,7 +336,7 @@ fn utils_get_default_device_id() {
 ```
 
 *src/main.rs*:
-```rs
+```rust
 extern crate rust_audio_lib;
 use rust_audio_lib::utils; // Refer to `utils` module
 
@@ -649,7 +649,7 @@ And we get the ids of default input and output device successfully!
 
 However, there are lots of warnings when we run it. Most of them are naming issues like: Considering renaming `mSelector` to `m_selector` or `kAudioObjectUnknown` to `K_AUDIO_OBJECT_UNKNOWN`. This is a conflict of preferred naming between *C* and *Rust*. I prefer to remain the *C* style naming of the corresponding type alias because I can recognize where they are from. To disable the warnings, we could add ```#![allow(non_snake_case, non_upper_case_globals)]``` at the beginning in *sys.rs*.
 
-```rs
+```rust
 #![allow(non_snake_case, non_upper_case_globals)]
 
 use std::mem; // For mem::uninitialized(), mem::size_of
@@ -662,7 +662,7 @@ use std::ptr; // For ptr::null()
 
 Another type of warnings are unused variables: ```kAudioHardwareBadObjectError``` and ```kAudioObjectUnknown```. They are just used in *unit tests*, so we can mark ```#[cfg(test)]``` on the line before their declarations.
 
-```rs
+```rust
 ...
 ...
 
@@ -735,7 +735,7 @@ There are few points I'd like to improve:
 3. One error is **hiding** behind success state. The returned ```AudioObjectID``` in success state may be a ```kAudioObjectUnknown```. That's why we check ```assert_ne!(get_property_data::<AudioObjectID>(...).unwrap(), kAudioObjectUnknown)``` in ```utils_get_property_data()```. This is an error! We should throw an error instead of returning a value.
 4. Return a custom *device id* instead of ```AudioObjectID```. ```AudioObjectID``` is native type from the system. We shouldn't use it as a returned type in a custom library. If this library will be called from *Python*, *python* doesn't know what ```AudioObjectID``` means. Furthermore, using a custom interface will give us a room to change the returned type anytime.(If ```utils``` module is only used internally, there is no need to do this.)
 5. Don't bring all the functions and types in ```sys``` into the scope of ```utils``` without namespace. It makes us confused about which variable we are using. For example:
-```rs
+```rust
 fn foo (status: OSStatus) {
     match status {
         kAudioHardwareBadObjectError => {
@@ -750,7 +750,7 @@ The ```kAudioHardwareBadObjectError``` is not the ```const``` variable defined i
 To address what we mentioned, the code can be rewritten into:
 
 *src/sys.rs*
-```rs
+```rust
 #![allow(non_snake_case, non_upper_case_globals)]
 
 use std::os::raw::c_void;
@@ -825,7 +825,7 @@ extern "C" {
 ```
 
 *src/lib.rs*
-```rs
+```rust
 mod sys; // Module contains types and functions of theexternal libraries
 
 pub mod utils {
@@ -982,7 +982,7 @@ To know more about raw pointer, please read the related chapters in [first editi
 
 After refactoring, we need to modify *src/main.rs* to use ```{:?}``` to show the debug message of ```utils::Error```:
 
-```rs
+```rust
 ...
 
 fn show_result(scope: utils::Scope) {
@@ -1006,7 +1006,7 @@ Finnaly, we can run ```cargo test``` and ```cargo run``` to check if it works. T
 
 Further, instead of throwing errors, actually we could just *assert* parameters are valid by ```assert!(...)```. If the assertion fails, it will ```panic```. We could add an assertion in ```src/lib.rs``` like:
 
-```rs
+```rust
 
 ...
 
@@ -1034,7 +1034,7 @@ fn get_property_data<T> (
 
 and add an attribute: [```#[should_panic]```][testpanic] to the test to catch the ```panic```:
 
-```rs
+```rust
 
 ...
 
