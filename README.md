@@ -9,7 +9,6 @@ The goal for these posts is to create a *Rust* library based on *CoreAudio* fram
 - How to call Rust library from *C*
 
 ## TO-DO
-- Use *Trait* as the interface
 - Find out why we need ```libresolv``` in compiled rust executable files
 - Use rustdoc
 - Use _*-sys_ modules on platform-dependent libraries
