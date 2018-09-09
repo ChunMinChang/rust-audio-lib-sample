@@ -1,5 +1,7 @@
 # Calling Native C APIs from Rust
 
+(See code example [here][step2].)
+
 ## Foreign Function Interface
 > A foreign function interface (FFI) is a mechanism by which a program written in one programming language can call routines or make use of services written in another.
 
@@ -303,3 +305,5 @@ Short answer is no. See [here][overhead].
 [rust]: https://github.com/rust-lang/rust/tree/master/src "rust-lang/rust"
 
 [overhead]: https://www.reddit.com/r/rust/comments/4sbmco/is_there_any_overhead_to_rust_ffi/ "Is there any overhead to Rust FFI?"
+
+[step2]: https://github.com/ChunMinChang/rust-audio-lib-sample/tree/9c91ac92df10edcd606e89d44447827695eca222/rust_audio_lib "Code for step2"
