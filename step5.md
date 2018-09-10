@@ -45,7 +45,7 @@ pub mod utils {
 }
 ```
 
-The ```get_property_data``` is a mock API, that should call the native [```AudioObjectGetPropertyData```][gpd] API. [```AudioObjectGetPropertyData```][gpd] takes [```AudioObjectID```][aoid](whose type is a *32-bit unsigned int*) as one of its parameter and returns an [OSStatus][oss](whose type is a *32-bit signed int*), so we take ```u32``` as parameter and return a ```i32``` when there is an error. Returning a [```Result```][result] is a common error handling pattern in *Rust*, so we adopt this idiom.
+The ```get_property_data``` is a mock API that should call the native [```AudioObjectGetPropertyData```][gpd] API. [```AudioObjectGetPropertyData```][gpd] takes [```AudioObjectID```][aoid] whose type is a *32-bit unsigned int* as one of its parameter and returns an [OSStatus][oss] whose type is a *32-bit signed int*, so we take a ```u32``` parameter and return a ```i32``` when there is an error. Returning a [```Result```][result] is a common error handling pattern in *Rust*, so we adopt this idiom.
 
 After having a mock API, we write two simple unit tests:
 - calling the internal API with invalid parameters: ```utils_get_property_data_invalid_id```
