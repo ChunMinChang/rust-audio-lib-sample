@@ -1,4 +1,4 @@
-mod sys; // Module contains types and functions of theexternal libraries
+mod sys; // Module contains types and functions of the external libraries
 
 pub mod utils {
     use super::sys; // Bring `sys` module into scope

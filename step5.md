@@ -64,7 +64,7 @@ fn utils_get_default_device_id() {
 }
 ```
 
-It verifies the API works for default input and output devices.
+It verifies the API works for both default input and output devices.
 
 Finally, we can use the API to show the results in *src/main.rs*:
 
@@ -92,15 +92,15 @@ fn main() {
 
 ## Foreign Function Interface: Linking to Platform Library
 
-Recall what we did in [Calling Native C APIs from Rust][callingC]: To call native APIs, *Rust* provides a *FFI* mechanism by keyword ```extern```. We can call the native platform-dependent C APIs in the similar way, with different *link* settings. To make it simple, let's assume we have a ```sys``` module that wraps all the the native types and APIs we need. This is a common way to organize *Rust* code. See more details in [modules chapter][mod] of *The Rust Programming Language*.
+Recall what we did in [Calling Native C APIs from Rust][callingC]: To call native APIs, *Rust* provides a *FFI* mechanism by keyword ```extern```. We can call the native platform-dependent C APIs in the similar way, with different *link* settings. To make it simple, let's assume we have a ```sys``` module that wraps all the the native types and APIs we need. Using *module* is a common way to organize code in *Rust*. See more details in [modules chapter][mod] of *The Rust Programming Language*.
 
 Based on the assumption we set, we can rewrite *src/lib.rs* as follows:
 
 ```rust
-mod sys; // Module contains types and functions of theexternal libraries.
+mod sys; // Module contains types and functions of the external libraries.
 
 pub mod utils {
-    use super::sys::*; // Bring public types and functions in sys into scope.
+    use super::sys::*; // Bring public types and functions in sys module into scope.
 
     #[derive(PartialEq)] // Enable comparison.
     pub enum Scope {
@@ -138,7 +138,6 @@ pub mod utils {
 
         #[test] // Built only within `cargo test`.
         fn utils_get_property_data_invalid_id() {
-
             // Invalid AudioObjectID with valid input adrress.
             assert_eq!(get_property_data::<AudioObjectID>(
                         kAudioObjectUnknown,
@@ -168,9 +167,9 @@ pub mod utils {
 }
 ```
 
-Beyond the language level, the process to get the ```AudioObjectID``` is pretty similar to the [example][abc].
+Beyond the language level, the process to get the ```AudioObjectID``` is pretty similar to the [C++ example][abc].
 
-All the native types like ```AudioObjectPropertyAddress```, ```kAudioObjectUnknown```,... , etc are all defined in the ```sys``` module and are brought into scope of ```utils``` by ```use super::sys::*;```. The key API: ```get_property_data``` is a wrapper for ```AudioObjectGetPropertyData``` that returns a ```Result<AudioObjectID, OSStatus>```. That is, if the calling is successful, then we will get a ```AudioObjectID```. Otherwise, we will get an error with ```OSStatus``` value indicating what is wrong. It's better to throw an error with clear message instead of the native error code from the framework. However, to make it simple, we just leave it for now.
+All the native types like ```AudioObjectPropertyAddress```, ```kAudioObjectUnknown```,... , etc are all defined in the ```sys``` module and are brought into scope of ```utils``` by ```use super::sys::*;```. The key API: ```get_property_data``` is a wrapper for ```AudioObjectGetPropertyData``` that returns a ```Result<AudioObjectID, OSStatus>```. That is, if the calling is successful, then we will get a ```AudioObjectID``` value. Otherwise, we will get an error with ```OSStatus``` value indicating what the wrong is. It's better to throw an error with clear message instead of a native error code from the underlying framework. However, to make it simple, we just leave it for now.
 
 The mock API is replaced by ```get_property_data<T>```. It's a *generic function* that returns a data with type ```T```. See more details about *generic* in [*Rust by Example*][generics] and [*The Rust Programming Language*][gdt].
 
@@ -274,9 +273,9 @@ pub fn get_property_data<T> (
         )
     };
     if status == kAudioHardwareNoError {
-      Ok(data)
+        Ok(data)
     } else {
-      Err(status)
+        Err(status)
     }
 }
 ```
@@ -290,30 +289,75 @@ The enum variables defined in framework's header files like ```kAudioHardwareNoE
 
 For the ```struct``` that is interoperable with *C* API, we need to add ```#[repr(C)]``` *attribute*. It specifies the data layout should be aligned in *C*'s style and prevents its memory layout from being mangled by *Rust* compiler for optimization. See more details in [*The Rust Reference*][layout] and [*The Rustonomicon*][reprc].
 
-The key API ```get_property_data<T>``` is a *generic function*, that returns a ```data``` with type ```T```. It's implemented based on the native C API: [```AudioObjectGetPropertyData```][gpd]. Given necessary parameters, we can query a ```data``` in any types with [```AudioObjectGetPropertyData```][gpd] since the ```data``` is reinterpreted as a ```void *``` pointer. That's why we use a *generic function* to wrap it. We should be able to query a ```data``` in any types.
+The key API ```get_property_data<T>``` is a *generic function* that returns a ```data``` with type ```T```. It's implemented based on the native C API: [```AudioObjectGetPropertyData```][gpd]. Given necessary parameters, we can query a ```data``` in any types with [```AudioObjectGetPropertyData```][gpd] since the ```data``` is reinterpreted as a ```void *``` pointer. That's why we use a *generic function* to wrap it. We should be able to query a ```data``` in any types.
 
-Declaring a variable ```data``` in type *T* without *initialized* value is illegal in *Rust*, so we use [```std::mem::uninitialized()```][memuninit] to bypass the check. The ```data``` is used to store the queried data. The byte size of ```data``` is can be calculated by [std::mem::size_of_val][memsize].
+Declaring a variable ```data``` in type ```T``` without *initialized* value is illegal in *Rust*, so we use [```std::mem::uninitialized()```][memuninit] to bypass the check. The ```data``` is used to store the queried data and its byte-size is be calculated by [std::mem::size_of_val][memsize].
 
-To call C API with *pointer* parameters, we need to cast types by ourselves. Keyword ```as``` is for safe casts. [```AudioObjectGetPropertyData```][gpd] takes the following pointers as parameters (in *C* style):
-- ```AudioObjectID inObjectID```
-- ```const AudioObjectPropertyAddress* inAddress```
-- ```const void* inQualifierData``` (usually ```nullptr```)
-- ```UInt32* ioDataSize```
-- ```void* outData```
 
-The ```*const T``` and ```*mut T``` in *Rust* are similar to *C*'s ```const T*```(a **variable** pointer pointing to a **constant** ```T```) and ```T*```(a **variable** pointer pointing to a **variable** ```T```), respectively.
+The key API for this sample is ```AudioObjectGetPropertyData```. Let's look closer to it:
 
-The second parameter of [```AudioObjectGetPropertyData```][gpd] is a pointer pointing to a constant ```AudioObjectPropertyAddress```, so we apply ```as``` to cast ```AudioObjectPropertyAddress``` reference: ```&AudioObjectPropertyAddress``` to a raw pointer pointing to a ```const AudioObjectPropertyAddress```: ```*const AudioObjectPropertyAddress``` directly by ```address as *const AudioObjectPropertyAddress```.
+```AudioObjectGetPropertyData``` in *C*:
+```c
+OSStatus AudioObjectGetPropertyData(
+    AudioObjectID inObjectID, 
+    const AudioObjectPropertyAddress* inAddress, 
+    UInt32 inQualifierDataSize, 
+    const void* inQualifierData, 
+    UInt32* ioDataSize, 
+    void* outData
+);
+```
 
-The fourth parameter of [```AudioObjectGetPropertyData```][gpd] is usually a *NULL* pointer, so we can just pass [```std::ptr::null()```][nullptr].
+```AudioObjectGetPropertyData``` in *Rust*:
+```rust
+fn AudioObjectGetPropertyData(
+    inObjectID: AudioObjectID,
+    inAddress: *const AudioObjectPropertyAddress,
+    inQualifierDataSize: u32,
+    inQualifierData: *const c_void,
+    ioDataSize: *mut u32,
+    outData: *mut c_void,
+) -> OSStatus;
+```
 
-The last second parameter of [```AudioObjectGetPropertyData```][gpd] is a *32-bit unsigned int* pointer, indicating the size of ```outData``` we have. The returned type of [std::mem::size_of_val][memsize] is ```usize```, so we cast ```size``` from ```usize``` to ```u32``` in advance and pass a raw pointer ```*mut u32``` that is casted from ```&mut size```.
+The ```*const T``` and ```*mut T``` in *Rust* are mapped to *C*'s ```const T*```(a **variable** pointer pointing to a **constant** ```T```) and ```T*```(a **variable** pointer pointing to a **variable** ```T```), respectively.
 
-The last parameter of [```AudioObjectGetPropertyData```][gpd] is a *void* pointer and our data will be put in that address. [```std::os::raw::c_void```][void] is used to construct *C* *void* pointers and it is only useful as a pointer target. It's illegal to directly cast from a reference to a *void* pointer in *Rust*. To get the *void* pointer from ```T``` reference, we need:
-1. Cast from a ```T``` reference: ```&mut data``` to a raw ```T``` pointer by ```&mut data as *mut T```
-2. Cast from a raw ```T``` pointer to a *void* pointer by ```*mut T as *mut c_void```
+```rust
+let mut data: T = unsafe { mem::uninitialized() };
+let mut size = mem::size_of_val(&data) as u32; // Cast usize to u32.
 
-Finally, let's look how to link the function ```fn AudioObjectGetPropertyData(...)``` to native API [```AudioObjectGetPropertyData```][gpd].
+...
+
+AudioObjectGetPropertyData(
+    id,
+    // Cast AudioObjectPropertyAddress ref to
+    // raw AudioObjectPropertyAddress pointer
+    address as *const AudioObjectPropertyAddress,
+    0,
+    ptr::null(),
+    // Cast u32 ref to a raw u32 pointer.
+    &mut size as *mut u32,
+    // Cast T ref to a raw T pointer first,
+    // and then cast raw T pointer to void pointer.
+    &mut data as *mut T as *mut c_void,
+)
+```
+
+The line ```address as *const AudioObjectPropertyAddress``` is to to cast ```AudioObjectPropertyAddress``` reference to
+a raw ```AudioObjectPropertyAddress``` pointer. 
+The second parameter of [```AudioObjectGetPropertyData```][gpd] is a pointer pointing to a constant ```AudioObjectPropertyAddress```, so we apply ```as``` to cast ```AudioObjectPropertyAddress``` reference(```&AudioObjectPropertyAddress```) to a raw ```AudioObjectPropertyAddress``` pointer(```*const AudioObjectPropertyAddress```, pointing to a ```const AudioObjectPropertyAddress```).
+
+The fourth parameter of [```AudioObjectGetPropertyData```][gpd] is usually a *NULL* pointer, so we can just pass [```std::ptr::null()```][nullptr] to it and set its size ```0``` to the third parameter.
+
+The line ```&mut size as *mut u32``` is to cast a ```u32``` reference to ```u32``` raw pointer.
+The second last parameter of [```AudioObjectGetPropertyData```][gpd] is a *32-bit unsigned int* pointer, indicating the size of ```outData``` we have. The returned type of [std::mem::size_of_val][memsize] is ```usize```, so we cast ```size``` from ```usize``` to ```u32``` in advance and then cast its ```u32``` reference(```&mut size```) to a raw ```u32``` pointer (```*mut u32```).
+
+The line ```&mut data as *mut T as *mut c_void``` is to cast a ```T``` reference to a raw ```T``` pointer.
+The last parameter of [```AudioObjectGetPropertyData```][gpd] is a *void* pointer and our data will be put in that address. [```std::os::raw::c_void```][void] is used to construct a *C* *void* pointer and it is only useful as a pointer target. It's illegal to directly cast from a reference to a *void* pointer in *Rust*. To get the *void* pointer from ```T``` reference, we need:
+1. Cast from a ```T``` reference(```&mut data```) to a raw ```T``` pointer(by ```&mut data as *mut T```)
+2. Cast from a raw ```T``` pointer to a *void* pointer(by ```*mut T as *mut c_void```)
+
+Finally, let's look how to link the *Rust* function ```fn AudioObjectGetPropertyData(...) -> OSStatus``` to native *C* API [```OSStatus AudioObjectGetPropertyData```][gpd].
 
 The ```#[cfg(target_os = "macos")]``` is a [configuration option][cfg] that compiles code only when the operating system is *Mac OS*. The ```AudioObjectGetPropertyData``` is platform-dependent API on *Mac OS*, so we use this attribute to mark it. Another common option is ```#[cfg(test)]```. That's what we used in [previous post][prev]. It indicates that the following code is only compiled for the test harness.
 
@@ -358,7 +402,7 @@ fn main() {
 }
 ```
 
-Finnaly, it's time to run them:
+Everything is all set. It's time to run them!
 
 ```
 $ cargo test
@@ -645,9 +689,9 @@ default device id: 48
 default device id: 55
 ```
 
-And we get the ids of default input and output device successfully!
+And the ids of default input and output device are successfully printed out!
 
-However, there are lots of warnings when we run it. Most of them are naming issues like: Considering renaming `mSelector` to `m_selector` or `kAudioObjectUnknown` to `K_AUDIO_OBJECT_UNKNOWN`. This is a conflict of preferred naming between *C* and *Rust*. I prefer to remain the *C* style naming of the corresponding type alias because I can recognize where they are from. To disable the warnings, we could add ```#![allow(non_snake_case, non_upper_case_globals)]``` at the beginning in *sys.rs*.
+However, there are lots of warnings when we run it. Most of them are naming issues, such as considering renaming `mSelector` to `m_selector`, or `kAudioObjectUnknown` to `K_AUDIO_OBJECT_UNKNOWN`. This is a conflict of preferred naming between *C* and *Rust*. I prefer to remain the *C* style naming of the corresponding type alias because I can recognize where they are from. To disable the warnings, we could add ```#![allow(non_snake_case, non_upper_case_globals)]``` at the beginning in *sys.rs*.
 
 ```rust
 #![allow(non_snake_case, non_upper_case_globals)]
