@@ -1,10 +1,19 @@
-extern crate rust_audio_lib; // Introduce the `rust_audio_lib` library crate
+extern crate rust_audio_lib;
 use rust_audio_lib::utils; // Refer to `utils` module
-// use rust_audio_lib::utils::double_abs; // Refer to `double_abs` function
+
+fn show_result(scope: utils::Scope) {
+    let side = if scope == utils::Scope::Input { "input" } else { "output" };
+    match utils::get_default_device_id(scope) {
+        Ok(id) => {
+            println!("default {} device id: {}", side, id);
+        },
+        Err(error) => {
+            println!("Failed to get {} device id. Error: {}", side, error);
+        }
+    }
+}
 
 fn main() {
-    let x: i32 = -50;
-    let abs: i32 = utils::double_abs(x);
-    // let abs: i32 = double_abs(x);
-    println!("Double of |{}| is {}", x, abs);
+    show_result(utils::Scope::Input);
+    show_result(utils::Scope::Output);
 }
