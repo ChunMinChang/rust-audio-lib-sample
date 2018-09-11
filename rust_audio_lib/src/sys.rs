@@ -56,8 +56,6 @@ pub const kAudioHardwarePropertyDefaultInputDevice: AudioObjectPropertySelector 
 // 0x'dOut' = 0x644F7574 = 1682929012
 pub const kAudioHardwarePropertyDefaultOutputDevice: AudioObjectPropertySelector = 1682929012;
 
-#[cfg(target_os = "macos")] // The function is only included on macOS.
-#[link(name = "CoreAudio", kind = "framework")] // Link dynamically to CoreAudio.
 extern "C" {
     // https://developer.apple.com/documentation/coreaudio/1422524-audioobjectgetpropertydata?language=objc
     pub fn AudioObjectGetPropertyData(
