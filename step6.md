@@ -1,10 +1,8 @@
-# Library Based on Platform C API - Part 2: FFI
+# Library Based on Platform C API - Part 2: Linking to Platform Library
 
 ## Foreign Function Interface: Linking to Platform Library
 
-Recall what we did in [Calling Native C APIs from Rust][callingC]: To call native APIs, *Rust* provides a *FFI* mechanism by keyword ```extern```. We can call the native platform-dependent C APIs in the similar way, with different *link* settings. To make it simple, let's assume we have a ```sys``` module that wraps all the the native types and APIs we need. Using *module* is a common way to organize code in *Rust*. See more details in [modules chapter][mod] of *The Rust Programming Language*.
-
-Based on the assumption we set, we can rewrite *src/lib.rs* as follows:
+Recall what we did in [Calling Native C APIs from Rust][callingC]: To call native APIs, *Rust* provides a *FFI* mechanism by keyword ```extern```. We can call the native platform-dependent C APIs in the similar way, with different *link* settings. To make it simple, let's assume we have a ```sys``` module that wraps all the the native types and APIs we need (Using *module* is a common way to organize code in *Rust*. See more details in [modules chapter][mod] of *The Rust Programming Language*.). By the assumption we set, we can rewrite *src/lib.rs* as follows:
 
 ```rust
 mod sys; // Module contains types and functions of the external libraries.
@@ -47,7 +45,7 @@ pub mod utils {
         use super::*; // To use the functions in utils
 
         #[test] // Built only within `cargo test`.
-        fn utils_get_property_data_invalid_id() {
+        fn test_get_property_data_invalid_id() {
             // Invalid AudioObjectID with valid input adrress.
             assert_eq!(get_property_data::<AudioObjectID>(
                         kAudioObjectUnknown,
@@ -61,7 +59,7 @@ pub mod utils {
         }
 
         #[test] // Built only within `cargo test`.
-        fn utils_get_property_data() {
+        fn test_get_property_data() {
             // Check the default input device id is valid.
             assert_ne!(get_property_data::<AudioObjectID>(
                         kAudioObjectSystemObject,
@@ -88,7 +86,7 @@ There are two *unit tests* here. One is to check if the error throwns as expecte
 Next, let's implement what we defined above in ```sys``` module. Create a *sys.rs* under *src* and put the following code into *src/sys.rs*:
 
 ```rust
-use std::mem; // For mem::uninitialized(), mem::size_of
+use std::mem; // For mem::uninitialized(), mem::size_of_val()
 use std::os::raw::c_void;
 use std::ptr; // For ptr::null()
 
@@ -193,9 +191,9 @@ pub fn get_property_data<T> (
 In *src/sys.rs*, we bind all types such as ```OSStatus```, ```AudioObjectID``` manually. We declare type aliases to give existing types another names.
 For example, ```type OSStatus = i32``` gives ```i32``` another name ```OSStatus``` and ```type AudioObjectID = u32``` gives ```u32``` another name ```AudioObjectID```. Check [Type Alias][ta] for more details.
 
-In fact, [```OSStatus```][oss] or [```AudioObjectID```][aoid] are also just type aliases defined by ```typedef``` in framework's header files, such as ```typedef UInt32 AudioObjectID;``` or ```typedef SInt32 OSStatus;```. Check them in [MacTypes.h][mt], [AudioHardwareBase.h][ahb], and [AudioHardware.h][ah].
+In fact, [```OSStatus```][oss] or [```AudioObjectID```][aoid] are also just type aliases defined by ```typedef``` in framework's *C* header files(.h), such as ```typedef UInt32 AudioObjectID;``` or ```typedef SInt32 OSStatus;```. Check them in [MacTypes.h][mt], [AudioHardwareBase.h][ahb], and [AudioHardware.h][ah].
 
-The enum variables defined in framework's header files like ```kAudioHardwareNoError``` or ```kAudioObjectUnknown``` are defined as [constants][const] here.
+The **enum** variables defined in framework's header files like ```kAudioHardwareNoError``` or ```kAudioObjectUnknown``` are defined as [**constants**][const] here.
 
 For the ```struct``` that is interoperable with *C* API, we need to add ```#[repr(C)]``` *attribute*. It specifies the data layout should be aligned in *C*'s style and prevents its memory layout from being mangled by *Rust* compiler for optimization. See more details in [*The Rust Reference*][layout] and [*The Rustonomicon*][reprc].
 
@@ -230,48 +228,58 @@ fn AudioObjectGetPropertyData(
 ) -> OSStatus;
 ```
 
-The ```*const T``` and ```*mut T``` in *Rust* are mapped to *C*'s ```const T*```(a **variable** pointer pointing to a **constant** ```T```) and ```T*```(a **variable** pointer pointing to a **variable** ```T```), respectively.
+The ```*const T``` and ```*mut T``` in *Rust* are mapped to *C*'s ```const T*```(a **variable** pointer pointing to a **constant** ```T```) and ```T*```(a **variable** pointer pointing to a **variable** ```T```), respectively. That's how we map this API from Rust to C.
+
+The way we call ```AudioObjectGetPropertyData``` in ```get_property_data<T>``` is:
 
 ```rust
-let mut data: T = unsafe { mem::uninitialized() };
-let mut size = mem::size_of_val(&data) as u32; // Cast usize to u32.
+pub fn get_property_data<T> (
+    id: AudioObjectID,
+    address: &AudioObjectPropertyAddress,
+) -> Result<T, OSStatus> {
+    // Using `mem::uninitialized()` to bypasses memory-initialization checks.
+    let mut data: T = unsafe { mem::uninitialized() };
+    let mut size = mem::size_of_val(&data) as u32; // Cast usize to u32.
+    let status: OSStatus = unsafe {
+        AudioObjectGetPropertyData(
+            id,
+            // Cast AudioObjectPropertyAddress ref to
+            // raw AudioObjectPropertyAddress pointer
+            address as *const AudioObjectPropertyAddress,
+            0,
+            ptr::null(),
+            // Cast u32 ref to a raw u32 pointer.
+            &mut size as *mut u32,
+            // Cast T ref to a raw T pointer first,
+            // and then cast raw T pointer to void pointer.
+            &mut data as *mut T as *mut c_void,
+        )
+    };
 
-...
+    ...
 
-AudioObjectGetPropertyData(
-    id,
-    // Cast AudioObjectPropertyAddress ref to
-    // raw AudioObjectPropertyAddress pointer
-    address as *const AudioObjectPropertyAddress,
-    0,
-    ptr::null(),
-    // Cast u32 ref to a raw u32 pointer.
-    &mut size as *mut u32,
-    // Cast T ref to a raw T pointer first,
-    // and then cast raw T pointer to void pointer.
-    &mut data as *mut T as *mut c_void,
-)
+}
 ```
 
-The line ```address as *const AudioObjectPropertyAddress``` is to to cast ```AudioObjectPropertyAddress``` reference to
-a raw ```AudioObjectPropertyAddress``` pointer.
+The line ```address as *const AudioObjectPropertyAddress``` is to to cast ```AudioObjectPropertyAddress``` **reference** to
+a raw ```AudioObjectPropertyAddress``` **pointer**.
 The second parameter of [```AudioObjectGetPropertyData```][gpd] is a pointer pointing to a constant ```AudioObjectPropertyAddress```, so we apply ```as``` to cast ```AudioObjectPropertyAddress``` reference(```&AudioObjectPropertyAddress```) to a raw ```AudioObjectPropertyAddress``` pointer(```*const AudioObjectPropertyAddress```, pointing to a ```const AudioObjectPropertyAddress```).
 
 The fourth parameter of [```AudioObjectGetPropertyData```][gpd] is usually a *NULL* pointer, so we can just pass [```std::ptr::null()```][nullptr] to it and set its size ```0``` to the third parameter.
 
-The line ```&mut size as *mut u32``` is to cast a ```u32``` reference to ```u32``` raw pointer.
-The second last parameter of [```AudioObjectGetPropertyData```][gpd] is a *32-bit unsigned int* pointer, indicating the size of ```outData``` we have. The returned type of [std::mem::size_of_val][memsize] is ```usize```, so we cast ```size``` from ```usize``` to ```u32``` in advance and then cast its ```u32``` reference(```&mut size```) to a raw ```u32``` pointer (```*mut u32```).
+The line ```&mut size as *mut u32``` is to cast a ```u32``` **reference** to ```u32``` raw **pointer**.
+The second last parameter of [```AudioObjectGetPropertyData```][gpd] is a *32-bit unsigned int* pointer, indicating the size of ```data``` we have. The size of ```data``` can be calculated by ```mem::size_of_val(&data)```. The returned type of [std::mem::size_of_val][memsize] is ```usize```, so we cast ```size``` from ```usize``` to ```u32``` in advance and then cast its ```u32``` **reference**(```&mut size```) to a raw ```u32``` **pointer** (```*mut u32```).
 
-The line ```&mut data as *mut T as *mut c_void``` is to cast a ```T``` reference to a raw ```T``` pointer.
-The last parameter of [```AudioObjectGetPropertyData```][gpd] is a *void* pointer and our data will be put in that address. [```std::os::raw::c_void```][void] is used to construct a *C* *void* pointer and it is only useful as a pointer target. It's illegal to directly cast from a reference to a *void* pointer in *Rust*. To get the *void* pointer from ```T``` reference, we need:
+The line ```&mut data as *mut T as *mut c_void``` is a 2-step type casting from a ```T``` **reference** to a raw ```c_void``` **pointer**.
+The last parameter of [```AudioObjectGetPropertyData```][gpd] is a **void** pointer pointing the the address of ```data```.[```std::os::raw::c_void```][void] is used to construct a *C* *void* pointer and it is only useful as a pointer target. It's illegal to directly cast from a reference to a *void* pointer in *Rust*. To get the *void* pointer from ```T``` reference, we need:
 1. Cast from a ```T``` reference(```&mut data```) to a raw ```T``` pointer(by ```&mut data as *mut T```)
-2. Cast from a raw ```T``` pointer to a *void* pointer(by ```*mut T as *mut c_void```)
+2. Cast from a raw ```T``` pointer to a *c_void* pointer(by ```*mut T as *mut c_void```)
 
 Finally, let's look how to link the *Rust* function ```fn AudioObjectGetPropertyData(...) -> OSStatus``` to native *C* API [```OSStatus AudioObjectGetPropertyData```][gpd].
 
-The ```#[cfg(target_os = "macos")]``` is a [configuration option][cfg] that compiles code only when the operating system is *Mac OS*. The ```AudioObjectGetPropertyData``` is platform-dependent API on *Mac OS*, so we use this attribute to mark it. Another common option is ```#[cfg(test)]```. That's what we used in [previous post][prev]. It indicates that the following code is only compiled for the test harness.
+The ```#[cfg(target_os = "macos")]``` is a [configuration option][cfg] that compiles code only when the operating system is *Mac OS*. The ```AudioObjectGetPropertyData``` is a platform-dependent API on *Mac OS*, so we use this attribute to mark it. Another common option is ```#[cfg(test)]```. That's what we used in [previous post for testing][prev]. It indicates that the following code is only compiled for the test harness.
 
-The ```#[link(name = "CoreAudio", kind = "framework")]``` is a [*FFI attribute*][ffiattr]. The ```link``` attribute on ```extern``` blocks define how the functions in block link to the native libraries. The ```CoreAudio```, assigned to ```name```, is the name of the native library that we're linking to. The ```framework```, assigned to ```kind```, is the type of native library that the compiler is linking to. The different ```kind``` values are meant to differentiate how the native library participates in linkage. Note that ```framework``` are only available on macOS targets. For more details about *linking*, read [here][linking].
+The ```#[link(name = "CoreAudio", kind = "framework")]``` is a [*FFI attribute*][ffiattr]. The ```link``` attribute on ```extern``` blocks define how the functions in block link to the native libraries. The ```CoreAudio```, assigned to ```name```, is the name of the native library that the compiler will link to. The ```framework```, assigned to ```kind```, is the type of native library that the compiler will link to. The different ```kind``` values are meant to differentiate how the native library participates in linkage. Note that ```framework``` are only available on macOS targets. For more details about *linking*, read [here][linking].
 
 The rest of code in the ```extern``` block is similar to what we did in [Calling Native C APIs from Rust][callingC].
 
@@ -283,7 +291,7 @@ extern crate rust_audio_lib; // Introduce the `rust_audio_lib` library crate.
 use rust_audio_lib::utils; // Refer to `utils` module
 
 #[test]
-fn utils_get_default_device_id() {
+fn test_get_default_device_id() {
     assert!(utils::get_default_device_id(utils::Scope::Input).is_ok());
     assert!(utils::get_default_device_id(utils::Scope::Output).is_ok());
 }
@@ -599,7 +607,7 @@ default device id: 48
 default device id: 55
 ```
 
-And the ids of default input and output device are successfully printed out!
+And the ids of default input and output devices are successfully printed out!
 
 However, there are lots of warnings when we run it. Most of them are naming issues, such as considering renaming `mSelector` to `m_selector`, or `kAudioObjectUnknown` to `K_AUDIO_OBJECT_UNKNOWN`. This is a conflict of preferred naming between *C* and *Rust*. I prefer to remain the *C* style naming of the corresponding type alias because I can recognize where they are from. To disable the warnings, we could add ```#![allow(non_snake_case, non_upper_case_globals)]``` at the beginning in *sys.rs*.
 
@@ -704,7 +712,6 @@ default device id: 55
 - FFI Linking
   - [The Rust Programming Language(first edition): Linking][linking]
   - [The Rust Reference: FFI attributes][ffiattr]
-- [The Rust Programming Language: Recoverable Errors with Result][qop]
 - [Raw Pointers][rawptr]
   - [The Rust Programming Language(first edition): Raw Pointers][refandptr]
   - [The Rust Programming Language: Unsafe Rust][unsafe]
@@ -745,8 +752,6 @@ default device id: 55
 
 [linking]: https://doc.rust-lang.org/book/first-edition/ffi.html#linking "The Rust Programming Language(first edition): Linking"
 [ffiattr]: https://doc.rust-lang.org/reference/attributes.html#ffi-attributes "The Rust Reference: FFI attributes"
-
-[qop]: https://doc.rust-lang.org/book/second-edition/ch09-02-recoverable-errors-with-result.html#a-shortcut-for-propagating-errors-the--operator "The Rust Programming Language: Recoverable Errors with Result"
 
 [rawptr]: https://doc.rust-lang.org/book/raw-pointers.html "Raw Pointers"
 [refandptr]: https://doc.rust-lang.org/book/first-edition/raw-pointers.html#references-and-raw-pointers "The Rust Programming Language(first edition): Raw Pointers"

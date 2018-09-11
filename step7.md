@@ -3,7 +3,7 @@
 There are few points I'd like to improve:
 1. The type alias from native library in ```sys``` module may be reused by other modules, but ```get_property_data``` may be used only in ```utils``` module. It makes sense to me to move ```get_property_data``` from ```sys``` module to ```utils``` module.
 2. We should use a custom error type instead of using ```OSStatus```. The ```OSStatus``` is from native system and we should not expect library user understand what it means.
-3. One error is **hiding** behind success state. The returned ```AudioObjectID``` in success state may be a ```kAudioObjectUnknown```. That's why we check ```assert_ne!(get_property_data::<AudioObjectID>(...).unwrap(), kAudioObjectUnknown)``` in ```utils_get_property_data()```. This is an error! We should throw an error instead of returning a value.
+3. One error is **hiding** behind success state. The returned ```AudioObjectID``` in success state may be a ```kAudioObjectUnknown```. That's why we check ```assert_ne!(get_property_data::<AudioObjectID>(...).unwrap(), kAudioObjectUnknown)``` in ```test_get_property_data()```. This is an **error**! We should throw an error instead of returning a value.
 4. Return a custom *device id* instead of ```AudioObjectID```. ```AudioObjectID``` is native type from the system. We shouldn't use it as a returned type in a custom library. If this library will be called from *Python*, *python* doesn't know what ```AudioObjectID``` means. Furthermore, using a custom interface will give us a room to change the returned type anytime.(If ```utils``` module is only used internally, there is no need to do this.)
 5. Don't bring all the functions and types in ```sys``` into the scope of ```utils``` without namespace. It makes us confused about which variable we are using. For example:
 ```rust
@@ -210,7 +210,7 @@ pub mod utils {
         use super::*; // To use the functions in utils
 
         #[test] // Built only within `cargo test`.
-        fn utils_get_property_data_invalid_id() {
+        fn test_get_property_data_invalid_id() {
             // Invalid AudioObjectID with valid input adrress.
             assert_eq!(get_property_data::<sys::AudioObjectID>(
                         sys::kAudioObjectUnknown,
@@ -224,7 +224,7 @@ pub mod utils {
         }
 
         #[test] // Built only within `cargo test`.
-        fn utils_get_property_data() {
+        fn test_get_property_data() {
             // Check the default input device id is valid.
             assert!(get_property_data::<sys::AudioObjectID>(
                         sys::kAudioObjectSystemObject,
@@ -240,18 +240,18 @@ pub mod utils {
 }
 ```
 
-We use [```?``` operator to propagate errors][qop] here. If the ```Result``` value returned from the function before ```?``` operator is an ```Err```, then the ```Err``` will be returned immediately as what early return works. If the ```Result``` is an ```Ok```, then the value inside the ```Ok``` will be returned and the program will keep going.
+We use [```?``` operator to propagate errors][qop] here. If the ```Result``` value returned from the function before ```?``` operator is an ```Err```, then the ```Err``` will be thrown out immediately as what early return works. If the ```Result``` is an ```Ok```, then the value inside the ```Ok``` will be returned from the function before ```?``` operator, and the program will keep going.
 
-To convert the ```OSStatus``` to our custom ```Error```, we implement [```std::convert::From```][conv-from] trait so we can get an ```Error``` from ```e.into()``` where ```e```'s type is ```OSStatus```.
+To convert the ```OSStatus``` to our custom ```Error```, we implement [```std::convert::From```][conv-from] trait so we can get an ```Error``` by calling ```e.into()``` where ```e```'s type is ```OSStatus```.
 
 On the other hand, we use automatic casting from reference to raw pointer (see [here][refandptr] for more details) to shorten our code:
-- ```&sys::AudioObjectPropertyAddress``` to ```*const sys::AudioObjectPropertyAddress``` (by ```address: &sys::AudioObjectPropertyAddress```)
-- ```&mut usize``` to ``` *mut usize``` (by ```&mut size```)
-- ```&mut T``` to ```*mut T``` (by ```&mut data```)
+- ```address``` in ```audio_object_get_property_data<T>```: ```&sys::AudioObjectPropertyAddress``` to ```*const sys::AudioObjectPropertyAddress```
+- ```&mut size``` in ```get_property_data<T>```: ```&mut usize``` to ``` *mut usize```
+- ```&mut data``` in ```get_property_data<T>```: ```&mut T``` to ```*mut T```
 
 To know more about raw pointer, please read the related chapters in [first edition][refandptr] and [second edition][unsafe] of *The Rust Programming Language* listed on [Raw Pointers][rawptr]. The details about casting between types can be found [here][cast].
 
-After refactoring, we need to modify *src/main.rs* to use ```{:?}``` to show the debug message of ```utils::Error```:
+After refactoring, we need to use ```{:?}``` to show ```utils::Error``` value in *src/main.rs*:
 
 ```rust
 ...
@@ -271,9 +271,10 @@ fn show_result(scope: utils::Scope) {
 ...
 ```
 
+```{:?}``` is used to show the debug message of the variables that implement ```std::fmt::Debug``` trait. Since we apply ```#[derive(Debug)]``` for the ```enum Error```, we can use that directly. See [Debug][debug] in *Rust By Example* for more detail.
 If we want to use the normal display ```{}``` for ```utils::Error```, then we need to implement ```std::fmt::Display``` trait by our own.
 
-Finnaly, we can run ```cargo test``` and ```cargo run``` to check if it works. The result will be same as what it shows above.
+Finally, we can run ```cargo test``` and ```cargo run``` to check if it works. The result will be same as what it shows above.
 
 Further, instead of throwing errors, actually we could just *assert* parameters are valid by ```assert!(...)```. If the assertion fails, it will ```panic```. We could add an assertion in ```src/lib.rs``` like:
 
@@ -311,7 +312,7 @@ and add an attribute: [```#[should_panic]```][testpanic] to the test to catch th
 
 #[test] // Built only within `cargo test`.
 #[should_panic(expected = "Bad")]
-fn utils_get_property_data_invalid_id() {
+fn test_get_property_data_invalid_id() {
     // Invalid AudioObjectID with valid input adrress.
     assert_eq!(get_property_data::<sys::AudioObjectID>(
                 sys::kAudioObjectUnknown,
@@ -331,6 +332,8 @@ fn utils_get_property_data_invalid_id() {
 It will let library users know they pass the wrong arguments.
 
 ## References
+- [```?``` operator][qop]
+- [Debug][debug]
 - [Raw Pointers][rawptr]
   - [The Rust Programming Language(first edition): Raw Pointers][refandptr]
   - [The Rust Programming Language: Unsafe Rust][unsafe]
@@ -338,6 +341,9 @@ It will let library users know they pass the wrong arguments.
 - [Checking for Panics with ```should_panic```][testpanic]
 - [```std::convert::From```][conv-from] trait
 
+[qop]: https://doc.rust-lang.org/book/second-edition/ch09-02-recoverable-errors-with-result.html#a-shortcut-for-propagating-errors-the--operator "? operator"
+
+[debug]: https://doc.rust-lang.org/rust-by-example/hello/print/print_debug.html "Debug"
 
 [rawptr]: https://doc.rust-lang.org/book/raw-pointers.html "Raw Pointers"
 [refandptr]: https://doc.rust-lang.org/book/first-edition/raw-pointers.html#references-and-raw-pointers "The Rust Programming Language(first edition): Raw Pointers"
