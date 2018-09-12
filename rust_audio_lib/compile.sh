@@ -26,15 +26,17 @@ compile_to_exe()
   compiler=$1
   source=$2
   exe=$3
-  $compiler $source -L $LIBRARY_PATH -l$LIBRARY_NAME -o $exe
+  append="$4"
+  $compiler $source -L $LIBRARY_PATH -l$LIBRARY_NAME $append -o $exe
 }
 
 echo "Build Rust library."
 cargo build --lib
 
 echo "Build executable files."
-compile_to_exe gcc $C_SOURCE $C_EXE
-compile_to_exe g++ $CPP_SOURCE $CPP_EXE
+FRAMEWORK_DEPENDENCY="-framework CoreAudio"
+compile_to_exe gcc $C_SOURCE $C_EXE "$FRAMEWORK_DEPENDENCY"
+compile_to_exe g++ $CPP_SOURCE $CPP_EXE "$FRAMEWORK_DEPENDENCY"
 
 echo "Run executable files."
 run_and_clean

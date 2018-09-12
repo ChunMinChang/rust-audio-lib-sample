@@ -8,6 +8,7 @@ authors = ["chunmin <chun.m.chang@gmail.com>"]
 [lib]
 name = "rust_audio_lib"
 # cdylib: For dynamic library to be loaded from another language.
-crate-type = ["cdylib"] # Run with `$ cargo build --lib`
+# staticlib: For static library to be compiled with another code.
+crate-type = ["staticlib"] # Run with `$ cargo build --lib`
 # To make `$ cargo build` work, using `crate-type = ["cdylib", "rlib"]` instead.
 # `rlib` is for static Rust library to be used internally (src/main.rs here).
