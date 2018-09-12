@@ -8,6 +8,9 @@ The goal for these posts is to create a *Rust* library based on *CoreAudio* fram
 - How to write a build script in *Cargo*
 - How to call Rust library from *C*
 
+## Sample Code
+The sample code for each step can be found in the beginning of each post. They are different commits on the [code][code] branch.
+
 ## TO-DO
 - Find out why we need ```libresolv``` in compiled rust executable files
 - Use rustdoc
@@ -20,3 +23,5 @@ These posts may be changed anytime. These posts are actually my learning notes f
 
 [kornel]: https://kornel.ski/rust-sys-crate "Making a *-sys crate"
 [bindgen]: https://github.com/rust-lang-nursery/ "rust-bindgen"
+
+[code]: https://github.com/ChunMinChang/rust-audio-lib-sample/tree/code-v0 "Sample Code"
