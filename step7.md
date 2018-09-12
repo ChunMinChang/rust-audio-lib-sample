@@ -360,5 +360,5 @@ It will let library users know they pass the wrong arguments.
 
 [r4cppp]: https://github.com/nrc/r4cppp/blob/master/control%20flow.md#switchmatch "Rust for C++ programmers"
 
-[step7]: https://github.com/ChunMinChang/rust-audio-lib-sample/tree/b73b2247531df1365d720ce155da556ef862f7b5/rust_audio_lib "Code for step 7"
-[step7-panic]: https://github.com/ChunMinChang/rust-audio-lib-sample/tree/2ed946f24e769489c85f8a87168b7314f300cbb7/rust_audio_lib "Code for step 7: panic in tests"
+[step7]: https://github.com/ChunMinChang/rust-audio-lib-sample/tree/dd794411fed668514b2d85696624e8c8f5c5dee1/rust_audio_lib "Code for step 7"
+[step7-panic]: https://github.com/ChunMinChang/rust-audio-lib-sample/tree/4765f3d982a15b7a856eb209d5770902cfd603be/rust_audio_lib "Code for step 7: panic in tests"

@@ -1,5 +1,7 @@
 # Calling Rust APIs in C
 
+(See the code [here][step9-static-lib].)
+
 To build a library that can be called in *C*, we need to create a *C*-compatible interface. The only one API ```get_default_device_id``` in our library returns a ```Result<...>```, which is not what *C* can understand. Hence, we need to create an interface like:
 
 ```c
@@ -80,6 +82,8 @@ crate-type = ["<TYPE_OF_LIBRARY>"] # dylib, cdylib, staticlib, rib, ...
 ```
 
 ### Creating a [Shared Library][shrlib]
+
+(See the code [here][step9-dynamic-lib].)
 
 To build a **dynamic** library, we need to set ```cdylib``` to ```crate-type``` in *Cargo.toml* as follow:
 
@@ -510,6 +514,8 @@ Clean Rust library.
 
 ### Creating a [Static Library][stalib]
 
+(See the code [here][step9-static-lib].)
+
 The process to build a **static** library is almost same as what we do to build a **dynamic** library. The differences between them are ```crate-type``` and linking options of compiler.
 
 To build a **static** library, we need to set ```staticlib``` to ```crate-type``` in *Cargo.toml*:
@@ -691,3 +697,6 @@ It works for *librust_audio_lib.dylib*.
 
 [sergey]: http://greyblake.com/blog/2017/08/10/exposing-rust-library-to-c/ "Exposing a Rust Library to C"
 [shepmaster]: http://jakegoulding.com/rust-ffi-omnibus/ "The Rust FFI Omnibus"
+
+[step9-dynamic-lib]: https://github.com/ChunMinChang/rust-audio-lib-sample/tree/7b3aa7bbeec71f707e80c388978ebc8ab22412a9/rust_audio_lib "Code for step 9: Creating a Shared Library"
+[step9-static-lib]: https://github.com/ChunMinChang/rust-audio-lib-sample/tree/96be1587ddd3c8e23918dcfcd5216f56a4f7764f/rust_audio_lib "Code for step 9: Creating a Static Library"

@@ -538,4 +538,4 @@ At the end, the link defined in ```#[link(name = "CoreAudio", kind = "framework"
 [Rufflewind]: https://rufflewind.com/2017-11-19/linking-in-rust "Linking Rust crates to native libraries"
 [kazlauskas]: https://kazlauskas.me/entries/writing-proper-buildrs-scripts.html "How to write build.rs scripts properly"
 
-[step8]: https://github.com/ChunMinChang/rust-audio-lib-sample/tree/99f703fcd1b2a34f1a8e2c917588ba5ddd467cf1/rust_audio_lib "Code for step 8"
+[step8]: https://github.com/ChunMinChang/rust-audio-lib-sample/tree/2369a06d3e0807c9b0f4f2d75354c2f17ea3d8d4/rust_audio_lib "Code for step 8"

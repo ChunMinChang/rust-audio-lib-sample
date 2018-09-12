@@ -764,4 +764,4 @@ default device id: 55
 [nullptr]: https://doc.rust-lang.org/std/ptr/fn.null.html "std::ptr::null"
 [void]: https://doc.rust-lang.org/std/os/raw/enum.c_void.html "std::os::raw::c_void"
 
-[step6]: https://github.com/ChunMinChang/rust-audio-lib-sample/tree/a7017358115cbbc06e7e519256d3f155b7422738/rust_audio_lib "Code for step 6"
+[step6]: https://github.com/ChunMinChang/rust-audio-lib-sample/tree/8bda0bc59dd707d0bde4990bd2a945ffbe5d9925/rust_audio_lib "Code for step 6"
