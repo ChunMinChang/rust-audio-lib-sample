@@ -6,14 +6,17 @@ pub mod utils {
     use std::os::raw::c_void;
     use std::ptr; // For ptr::null()
 
+    #[repr(C)]
     #[derive(PartialEq)] // Enable comparison
     pub enum Scope {
         Input,
         Output,
     }
 
+    #[repr(C)]
     #[derive(Debug, PartialEq)] // Using Debug for std::fmt::Debug
     pub enum Error {
+        Ok,
         NoDevice,
         InvalidParameters,
     }
@@ -144,5 +147,22 @@ pub mod utils {
                 kAudioObjectUnknown
             );
         }
+    }
+}
+
+#[no_mangle] // Tell the Rust compiler not to mangle the name of this function.
+pub extern "C" fn get_default_device_id(
+    scope: utils::Scope,
+    id: *mut utils::DeviceId,
+) -> utils::Error {
+    if id.is_null() {
+        return utils::Error::InvalidParameters;
+    }
+    match utils::get_default_device_id(&scope) {
+        Ok(device_id) => {
+            unsafe { *id = device_id };
+            utils::Error::Ok
+        }
+        Err(error) => error,
     }
 }

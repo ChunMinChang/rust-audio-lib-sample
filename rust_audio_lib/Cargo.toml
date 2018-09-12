@@ -4,3 +4,10 @@ version = "0.1.0"
 authors = ["chunmin <chun.m.chang@gmail.com>"]
 
 [dependencies]
+
+[lib]
+name = "rust_audio_lib"
+# cdylib: For dynamic library to be loaded from another language.
+crate-type = ["cdylib"] # Run with `$ cargo build --lib`
+# To make `$ cargo build` work, using `crate-type = ["cdylib", "rlib"]` instead.
+# `rlib` is for static Rust library to be used internally (src/main.rs here).
