@@ -1,6 +1,6 @@
-# Calling Rust APIs from C
+# Calling Rust APIs in C
 
-To build a library that can be called from *C*, we need to create a *C*-compatible interface. The only one API ```get_default_device_id``` in our library returns a ```Result<...>```, which is not what *C* can understand. Hence, we need to create an interface like:
+To build a library that can be called in *C*, we need to create a *C*-compatible interface. The only one API ```get_default_device_id``` in our library returns a ```Result<...>```, which is not what *C* can understand. Hence, we need to create an interface like:
 
 ```c
 Error get_default_device_id(scope s, device_id* id);
@@ -54,7 +54,7 @@ pub extern fn get_default_device_id(
 }
 ```
 
-To add the *C*-compatible interface ```fn get_default_device_id(...) -> utils::Error```, we add a *OK* state into ```enum Error``` so *C* user can know the calling is successful. Since the ```enum Error``` and ```enum Scope``` will be exposed to *C*, so we add ```#[repr(C)]``` to make sure their data layout is same as what *enum* in *C* is. On the line of the interface API, the [```#[no_mangle]```][unsafe] is used to prevent the function name from being modified when it's compiled, so it can be found in the library.
+To add the *C*-compatible interface ```fn get_default_device_id(...) -> utils::Error```, we add a ```Ok``` into ```enum Error``` so *C* user can know the calling is successful. Since the ```enum Error``` and ```enum Scope``` will be exposed to *C*, so we add ```#[repr(C)]``` to make sure their data layout is same as what *enum* in *C* is. On the line of the interface API ```get_default_device_id```, the [```#[no_mangle]```][unsafe] is used to prevent the function name from being modified when it's compiled, so it can be found in the library.
 
 ## Building Libraries
 
@@ -594,9 +594,9 @@ default output device id: 39
 
 One interesting quesiton here is: *why we don't get this error when dynamic linking*.
 
-[Dynamic linking][dlink] allows the executables contains **undefined** symbols with a list indicating where they are defined. The undefined symbols will be bound to their references in the provided list when the program is loaded(at **run time**). The executable may just have a unreferenced symbol from ```extern Error get_default_device_id(Scope scope, device_id* id)``` and a list indicating that ```get_default_device_id``` can be found in *librust_audio_lib.dylib*. The ```get_default_device_id``` will be linked when the executable is loaded to run. The executable has no idea about ```AudioObjectGetPropertyData```. It doesn't care the detail in ```get_default_device_id```. And that's why we can change the implementation in ```pub extern fn get_default_device_id``` anytime(recall that we add ```println!("hello world!")``` in ```get_default_device_id``` without recompiling *C* or *C++* code.).
+[Dynamic linking][dlink] allows the executables contains **undefined** symbols with a list indicating where they are defined. The undefined symbols will be bound to their references in the provided list when the program is loaded in **run time**. The executable may just have a unreferenced symbol from ```extern Error get_default_device_id(Scope scope, device_id* id)``` and a list indicating that ```get_default_device_id``` can be found in *librust_audio_lib.dylib*. The ```get_default_device_id``` will be linked when the executable is loaded to run. The executable has **no idea** about ```AudioObjectGetPropertyData```. It doesn't care the detail in ```get_default_device_id```. And that's why we can change the implementation in ```pub extern fn get_default_device_id``` anytime(recall that we add ```println!("hello world!")``` in ```get_default_device_id``` without recompiling *C* or *C++* code.).
 
-[Static linking][sbuild] link all symbols statically when the executables are created. All the bindings of undefined symbols in the program have to be done at **compile time**. that's why we need to tell compiler where it can find ```AudioObjectGetPropertyData```.
+[Static linking][sbuild] links all symbols statically when the executables are created. All the bindings of undefined symbols in the program have to be done in **compile time**. That's why we need to tell compiler where it can find ```AudioObjectGetPropertyData```.
 
 #### Updating the Shell Script
 
